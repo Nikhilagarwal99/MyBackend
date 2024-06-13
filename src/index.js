@@ -3,18 +3,17 @@ import connectDB from "./db/index.js";
 import dotenv from "dotenv";
 dotenv.config();
 connectDB()
-  .then(
+  .then(() => {
+    app.listen(process.env.PORT || 4000, () => {
+      console.log(`Server is running at PORT ${process.env.PORT || 4000}`);
+    });
     app.on("error", (error) => {
       console.log("Error", error);
       throw error;
-    }),
-    app.listen(process.env.PORT || 4000),
-    () => {
-      console.log(`Server is running at PORT ${process.env.PORT || 4000}`);
-    }
-  )
-  .catch((err) => {
-    console.log("Mongo DB conection failed!!");
+    });
+  })
+  .catch((error) => {
+    console.log("Mongo DB conection failed!!", error);
   });
 
 /*
