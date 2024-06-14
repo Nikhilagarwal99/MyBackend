@@ -8,7 +8,6 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 const registerUser = asyncHandler(async (req, res) => {
   // GET user details from frontend
   const { fullname, email, username, password } = req.body;
-  console.log(req.body, "Nikhil Ulllla aaaaa", req.files);
   // Validation - not empty
   if (
     [fullname, email, username, password].some((field) => {
