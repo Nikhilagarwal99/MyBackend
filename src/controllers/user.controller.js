@@ -175,7 +175,6 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 // Refresh Access Token End Point
-
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
     req.cookies?.refreshToken ||
@@ -224,4 +223,87 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, error?.message || "Invalid Token response ");
   }
 });
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+
+//Change the Password Functionality
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  //Take the user Input of old password & new Password
+  const { oldPassword, newPassword } = req.body;
+  // find the user in db
+  const user = await User.findById(req.user?._id);
+  // Validate the Old password
+  if (!(await user.isPasswordCorrect(oldPassword))) {
+    throw new ApiError(400, "Please Enter correct password ");
+  }
+  //if old passsword is validated, change the current password of the user & update in the DB
+  await User.findByIdAndUpdate(
+    user._id,
+    {
+      $set: { password: newPassword },
+    },
+    {
+      new: true,
+    }
+  );
+  // user.password = newPassword;
+  // const successFlag = await user.save({ validateBeforeSave: false });
+
+  // if (!successFlag) {
+  //   throw new ApiError(500, "Some issue with the DB, Plase try again later");
+  // }
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { password: "Password changed successfully" },
+        "Password is changed"
+      )
+    );
+});
+// Get the details of loggedin User
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res.status(
+    new ApiResponse(
+      200,
+      {
+        user: req.user,
+      },
+      "Current User Fetched Successfully"
+    )
+  );
+});
+// Update the profile avatar of user
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  const avataLocalPath = req.file?.path;
+  if (!avataLocalPath) {
+    throw new ApiError(400, "Avatar File is missing");
+  }
+  const avatar = await uploadOnCloudinary(avataLocalPath);
+  if (!avatar.url) {
+    throw new ApiError(400, "Error while uploading file on  cloudinary avatar");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select("-password -refreshToken");
+  return res
+    .status(201)
+    .json(new ApiResponse(201, user, "Profile picture updated Successfully"));
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateUserAvatar,
+};
