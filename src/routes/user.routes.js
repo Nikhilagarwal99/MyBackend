@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   changeCurrentPassword,
   getCurrentUser,
+  getUserChannelProfile,
+  getWatchHistory,
   loginUser,
   logoutUser,
   refreshAccessToken,
@@ -10,6 +12,8 @@ import {
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { verify } from "jsonwebtoken";
+
 const router = Router();
 
 router.route("/register").post(
@@ -40,5 +44,9 @@ router.route("/changePassword").post(verifyJWT, changeCurrentPassword);
 router
   .route("/avatarChange")
   .patch(verifyJWT, upload.single("avatar"), updateUserAvatar);
+
+router.route("/channelProfile/:username").get(verifyJWT, getUserChannelProfile);
+
+router.route("/watchHistory").get(verifyJWT, getWatchHistory);
 
 export default router;
