@@ -6,7 +6,6 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
 // Generate Access & Refresh Token Methods
-
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
@@ -173,7 +172,6 @@ const logoutUser = asyncHandler(async (req, res) => {
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "User Logout Successfully"));
 });
-
 // Refresh Access Token End Point
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
@@ -223,7 +221,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, error?.message || "Invalid Token response ");
   }
 });
-
 //Change the Password Functionality
 const changeCurrentPassword = asyncHandler(async (req, res) => {
   //Take the user Input of old password & new Password
@@ -235,21 +232,21 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Please Enter correct password ");
   }
   //if old passsword is validated, change the current password of the user & update in the DB
-  await User.findByIdAndUpdate(
-    user._id,
-    {
-      $set: { password: newPassword },
-    },
-    {
-      new: true,
-    }
-  );
-  // user.password = newPassword;
-  // const successFlag = await user.save({ validateBeforeSave: false });
+  // await User.findByIdAndUpdate(
+  //   user._id,
+  //   {
+  //     $set: { password: newPassword },
+  //   },
+  //   {
+  //     new: true,
+  //   }
+  // );
+  user.password = newPassword;
+  const successFlag = await user.save({ validateBeforeSave: false });
 
-  // if (!successFlag) {
-  //   throw new ApiError(500, "Some issue with the DB, Plase try again later");
-  // }
+  if (!successFlag) {
+    throw new ApiError(500, "Some issue with the DB, Plase try again later");
+  }
   return res
     .status(200)
     .json(
@@ -262,7 +259,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 });
 // Get the details of loggedin User
 const getCurrentUser = asyncHandler(async (req, res) => {
-  return res.status(
+  return res.status(200).json(
     new ApiResponse(
       200,
       {
@@ -298,6 +295,122 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, user, "Profile picture updated Successfully"));
 });
 
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username is required");
+  }
+  // await User.find({ username });
+  const channel = await User.aggregate([
+    { $match: { username: username?.toLowerCase() } },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscriberdTo",
+      },
+    },
+    {
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers",
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fullname: 1,
+        username: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        email: 1,
+        coverImage: 1,
+      },
+    },
+  ]);
+
+  if (!channel?.length) {
+    throw new ApiError(404, "Channel does not exists");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, channel, "User Channel fetched Successfully"));
+});
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: _id,
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullname: 1,
+                    username: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user[0].watchHistory,
+        "Watch History Fetched Successfully"
+      )
+    );
+});
 export {
   registerUser,
   loginUser,
@@ -306,4 +419,6 @@ export {
   changeCurrentPassword,
   getCurrentUser,
   updateUserAvatar,
+  getUserChannelProfile,
+  getWatchHistory,
 };
