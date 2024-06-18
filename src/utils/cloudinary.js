@@ -1,5 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import { ApiError } from "./ApiError.js";
+import { ApiResponse } from "./ApiResponse.js";
 
 // Configuration
 cloudinary.config({
@@ -18,7 +20,8 @@ const uploadOnCloudinary = async (localFilePath) => {
       resource_type: "auto",
     });
     //file is uploaded on cloudinary
-    console.log("File is uploaded Successfully", uploadResult.url);
+
+    console.log("File is uploaded Successfully", uploadResult);
     fs.unlinkSync(localFilePath);
     return uploadResult;
   } catch (error) {
@@ -27,4 +30,12 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
-export { uploadOnCloudinary };
+const deleteOnCloudinary = async (fileURL) => {
+  if (!fileURL) {
+    return new ApiError(404, "file not found");
+  }
+  const publicId = fileURL.split("/").pop().split(".")[0];
+  const deleteResult = await cloudinary.uploader.destroy(publicId);
+  return deleteResult;
+};
+export { uploadOnCloudinary, deleteOnCloudinary };

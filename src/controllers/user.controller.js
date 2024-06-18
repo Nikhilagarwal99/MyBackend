@@ -1,9 +1,10 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 // Generate Access & Refresh Token Methods
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -276,6 +277,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Avatar File is missing");
   }
   const avatar = await uploadOnCloudinary(avataLocalPath);
+
   if (!avatar.url) {
     throw new ApiError(400, "Error while uploading file on  cloudinary avatar");
   }
@@ -290,6 +292,9 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
       new: true,
     }
   ).select("-password -refreshToken");
+  const userOldAvatar = req.user?.avatar;
+  await deleteOnCloudinary(userOldAvatar);
+
   return res
     .status(201)
     .json(new ApiResponse(201, user, "Profile picture updated Successfully"));
@@ -317,7 +322,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         from: "subscriptions",
         localField: "_id",
         foreignField: "subscriber",
-        as: "subscriberdTo",
+        as: "subscribedTo",
       },
     },
     {
@@ -356,7 +361,9 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   }
   return res
     .status(200)
-    .json(new ApiResponse(200, channel, "User Channel fetched Successfully"));
+    .json(
+      new ApiResponse(200, channel[0], "User Channel fetched Successfully")
+    );
 });
 
 const getWatchHistory = asyncHandler(async (req, res) => {
@@ -370,7 +377,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
       $lookup: {
         from: "videos",
         localField: "watchHistory",
-        foreignField: _id,
+        foreignField: "_id",
         as: "watchHistory",
         pipeline: [
           {
