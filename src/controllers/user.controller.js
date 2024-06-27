@@ -4,7 +4,7 @@ import { User } from "../models/user.model.js";
 import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
+import mongoose,{Types} from "mongoose";
 
 // Generate Access & Refresh Token Methods
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -28,7 +28,6 @@ const registerUser = asyncHandler(async (req, res) => {
   if (
     [fullname, email, username, password].some((field) => field?.trim() === "")
   ) {
-    console.log("Nhi chal rha bhai");
     throw new ApiError(400, "All Fields is required");
   }
 
@@ -276,6 +275,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   if (!avataLocalPath) {
     throw new ApiError(400, "Avatar File is missing");
   }
+  
   const avatar = await uploadOnCloudinary(avataLocalPath);
 
   if (!avatar.url) {
@@ -370,7 +370,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: new mongoose.Types.ObjectId(req.user._id),
+        _id: new Types.ObjectId(req.user._id),
       },
     },
     {

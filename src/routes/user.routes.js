@@ -13,7 +13,6 @@ import {
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
-
 const router = Router();
 
 router.route("/register").post(
@@ -48,5 +47,7 @@ router
 router.route("/channelProfile/:username").get(verifyJWT, getUserChannelProfile);
 
 router.route("/watchHistory").get(verifyJWT, getWatchHistory);
+
+
 
 export default router;
