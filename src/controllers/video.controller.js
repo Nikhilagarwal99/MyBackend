@@ -145,9 +145,38 @@ const videoPlay = asyncHandler(async (req, res) => {
 });
 
 //publish a video
+const publishVideo = asyncHandler(async (req, res) => {});
 
-// Delete a vidoe
+// Delete a video
 
 // get all Video
 
-export { videoUpload, videoPlay };
+// Search a video with title
+
+const searchVideo = asyncHandler(async (req, res) => {
+  const { title, description, id, sort } = req.query;
+  const queryObject = {};
+  if (title) {
+    queryObject.title = { $regex: title, $options: "i" };
+  }
+  if (description) {
+    queryObject.description = { $regex: description, $options: "i" };
+  }
+  if (id) {
+    queryObject._id = id;
+  }
+  let video = Video.find(queryObject);
+
+  //SORTING fUNCTIONALITY
+  if (sort) {
+    let sortFix = sort.replace(",", " ");
+    video = video.sort(sortFix);
+  }
+  const videoOutput = await video;
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, videoOutput, "Output Fetch Successfully"));
+});
+
+export { videoUpload, videoPlay, publishVideo, searchVideo };
