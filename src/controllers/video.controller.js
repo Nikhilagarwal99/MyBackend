@@ -145,14 +145,113 @@ const videoPlay = asyncHandler(async (req, res) => {
 });
 
 //publish a video
-const publishVideo = asyncHandler(async (req, res) => {});
+const publishVideo = asyncHandler(async (req, res) => {
+  // ?fetch the video id from params
+  const { videoId } = req.params;
+  // Take the login user details from cookie
+  const loggedInUserId = req?.user._id;
+  // check if user is enter any video id or not
+  if (!videoId) {
+    return new ApiError(404, "Please Enter a valid video Id");
+  }
+  // get the video details from DB
+  const video = await Video.findById(videoId);
+  // Few Validations
+  if (!loggedInUserId) {
+    return new ApiError(401, "User is not Logged In");
+  }
+
+  if (video.owner !== loggedInUserId) {
+    return new ApiError(
+      401,
+      "Please login with the Owner Account, You are not authorized"
+    );
+  }
+  const publishStatus = video.isPublished;
+  if (publishStatus) {
+    return new ApiError(406, "Video is Already Published");
+  }
+  video.isPublished = true;
+  const successFlag = await video.save({ validateBeforeSave: false });
+
+  if (!successFlag) {
+    return new ApiError(500, "Server issue, Please try again later");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video is published Sucessfully"));
+});
 
 // Delete a video
 
+const deleteVideo = asyncHandler(async (req, res) => {
+  //Take the video Id from the request parameter
+  const { videoId } = req.params;
+  if (!videoId) return new ApiError(404, "Please provide a video Id");
+  // Its a delete Operation
+
+  //check if user is logeed in
+
+  const loggedInUserId = req?.user._id;
+  if (!loggedInUserId) {
+    return new ApiError(401, "Unauthorized Request, Please login");
+  }
+
+  //Get the video document from the database
+  const video = await Video.findById(videoId);
+  if (!video) {
+    return new ApiError(404, "Invalid Video Id or Video is already deleted");
+  }
+
+  // check the loggedin user is the owner of the video
+  if (video.owner !== loggedInUserId) {
+    return new ApiError(
+      401,
+      "Please login with the Admin account, you are not authorized to perform this operation"
+    );
+  }
+  // perform the delete operation in the db
+  Video.deleteOne({ _id: videoId })
+    .then((deleteResponse) => {
+      if (deleteResponse) {
+        return res
+          .status(203)
+          .json(
+            new ApiResponse(
+              203,
+              deleteResponse,
+              "Video is deleted Successfully"
+            )
+          );
+      } else {
+        return res
+          .status(404)
+          .json(new ApiResponse(404, {}, "Video is not found"));
+      }
+    })
+    .catch((error) => {
+      return new ApiError(500, error);
+    });
+  // send the response to the user
+});
+
 // get all Video
 
-// Search a video with title
+const getAllVideo = asyncHandler(async (req, res) => {
+  // We need to use Aggregate Paginate here to handle the large data
+  //Login is not needed for this operation
+  // get the response from the Video DB
 
+  const video = await Video.find({ isPublished: true }).select(
+    "-isPublished -owner"
+  );
+  // use select operation to hide sensitive information and send the data to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "All video is fetched"));
+});
+
+// Search a video with title
 const searchVideo = asyncHandler(async (req, res) => {
   const { title, description, id, sort } = req.query;
   const queryObject = {};
@@ -179,4 +278,11 @@ const searchVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, videoOutput, "Output Fetch Successfully"));
 });
 
-export { videoUpload, videoPlay, publishVideo, searchVideo };
+export {
+  videoUpload,
+  videoPlay,
+  publishVideo,
+  searchVideo,
+  deleteVideo,
+  getAllVideo,
+};
