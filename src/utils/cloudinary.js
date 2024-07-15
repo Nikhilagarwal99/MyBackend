@@ -2,6 +2,7 @@ import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 import { ApiError } from "./ApiError.js";
 import { ApiResponse } from "./ApiResponse.js";
+import { log } from "console";
 
 // Configuration
 cloudinary.config({
@@ -25,7 +26,9 @@ const uploadOnCloudinary = async (localFilePath) => {
     fs.unlinkSync(localFilePath);
     return uploadResult;
   } catch (error) {
-    fs.unlinkSync(localFilePath); //remove the locally saved temp file as the upload operation got failed
+    fs.unlinkSync(localFilePath);
+    //remove the locally saved temp file as the upload operation got failed
+    console.log("Error", error);
     return null;
   }
 };

@@ -32,6 +32,7 @@ const userSchema = new mongoose.Schema(
     coverImage: {
       type: String, //cloudnary URL
     },
+    //Array of object
     watchHistory: [
       {
         type: Schema.Types.ObjectId,
@@ -48,6 +49,7 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 

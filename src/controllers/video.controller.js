@@ -155,19 +155,22 @@ const publishVideo = asyncHandler(async (req, res) => {
   }
 
   // get the video details from DB
-  const video = await Video.findById(videoId.trim());
+  const video = await Video.findById(videoId.trim()).select(
+    "-createdAt -updatedAt"
+  );
   // Few Validations
   if (!loggedInUserId) {
     throw new ApiError(401, "User is not Logged In");
   }
-  if (video.owner != loggedInUserId) {
+  console.log(String(loggedInUserId), "       ", String(video.owner));
+  if (String(video.owner) !== String(loggedInUserId)) {
     throw new ApiError(
       401,
       "Please login with the Owner Account, You are not authorized"
     );
   }
 
-  const publishStatus = video.isPublished;
+  const publishStatus = await video.isPublished;
   if (publishStatus) {
     throw new ApiError(406, "Video is Already Published");
   }
@@ -204,7 +207,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
   }
 
   // check the loggedin user is the owner of the video
-  if (video.owner !== loggedInUserId) {
+  if (String(video.owner) !== String(loggedInUserId)) {
     throw new ApiError(
       401,
       "Please login with the Admin account, you are not authorized to perform this operation"

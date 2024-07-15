@@ -1,5 +1,6 @@
 import multer from "multer";
 
+//File Uplaod Functionality from web request in POST calls
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "./public/temp");

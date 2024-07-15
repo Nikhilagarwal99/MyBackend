@@ -3,6 +3,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 const app = express();
+
+//Define built-in and thirdparty Middleware 
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN,
